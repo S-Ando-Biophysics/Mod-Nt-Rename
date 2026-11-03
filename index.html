@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mod-Nt-Rename</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #cbd5e1;
+      --text: #1e293b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-top: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+    }
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .images-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 768px) {
+      .upload-grid, .images-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .image-box {
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      min-height: 280px;
+      max-height: 450px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow: auto;
+      background: #ffffff;
+    }
+    .image-box img, .image-box svg {
+      max-width: 100%;
+      max-height: 420px;
+      height: auto;
+      object-fit: contain;
+    }
+    .residue-selector {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .residue-btn {
+      background: #f1f5f9;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .residue-btn:hover {
+      background: #e2e8f0;
+    }
+    .residue-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .instructions {
+      font-size: 0.875rem;
+      color: #475569;
+      margin-bottom: 16px;
+      background: #f1f5f9;
+      padding: 10px 14px;
+      border-radius: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+    }
+    tr.delete-row {
+      background-color: #fef2f2;
+    }
+    tr.rename-row {
+      background-color: #eff6ff;
+    }
+    input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .badge-keep { background: #e2e8f0; color: #475569; }
+    .badge-rename { background: #dbeafe; color: #1e40af; }
+    .badge-delete { background: #fee2e2; color: #991b1b; }
+    .actions {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .download-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .download-btn:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+    .download-btn:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>修飾ヌクレオチドの原子名を変更するサイト</h1>
+
+  <!-- 1. ファイルアップロード欄 -->
+  <div class="card upload-grid">
+    <div>
+      <label for="pdbInput" style="font-weight: 600; display: block; margin-bottom: 6px;">1. 修飾ヌクレオチドのPDBファイルをアップロード（必須）</label>
+      <input type="file" id="pdbInput" accept=".pdb,.ent,.txt">
+    </div>
+    <div>
+      <label for="svgInput" style="font-weight: 600; display: block; margin-bottom: 6px;">2. 原子名が記載されたSVG画像をアップロード（任意）</label>
+      <input type="file" id="svgInput" accept=".svg,image/*">
+    </div>
+  </div>
+
+  <!-- 2. 画像表示エリア（左：アップロードしたSVG / 右：選択したリファレンス画像） -->
+  <div class="images-grid">
+    <!-- 左：変更前の構造（アップロードSVG） -->
+    <div class="card" style="margin-bottom: 0;">
+      <div class="panel-title">
+        <span>変更前の原子名（アップロードしたSVG画像）</span>
+      </div>
+      <div id="uploadedSvgContainer" class="image-box">
+        <span style="color: #94a3b8; font-size: 0.9rem;">SVGファイルをアップロードするとここに表示されます</span>
+      </div>
+    </div>
+
+    <!-- 右：変更後のリファレンス画像（8種切り替え） -->
+    <div class="card" style="margin-bottom: 0;">
+      <div class="panel-title">
+        <span>標準ヌクレオチドの原子名（参考）</span>
+        <div class="residue-selector" id="residueSelector">
+          <button type="button" class="residue-btn" data-res="DA">DA</button>
+          <button type="button" class="residue-btn" data-res="DC">DC</button>
+          <button type="button" class="residue-btn" data-res="DG">DG</button>
+          <button type="button" class="residue-btn" data-res="DT">DT</button>
+          <button type="button" class="residue-btn" data-res="A">A</button>
+          <button type="button" class="residue-btn" data-res="C">C</button>
+          <button type="button" class="residue-btn" data-res="G">G</button>
+          <button type="button" class="residue-btn" data-res="U">U</button>
+        </div>
+      </div>
+      <div id="referenceImageContainer" class="image-box">
+        <span style="color: #94a3b8; font-size: 0.9rem;">上のボタン（DA〜U）を選択すると参照画像が表示されます</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 原子名対応表（画像の下） -->
+  <div class="card">
+    <div class="panel-title">原子名の変更</div>
+    <div class="instructions">
+      ・右側の列に変更後の原子名を入力してください（空欄のままにすると元の原子名を維持します）。<br>
+      ・「削除」または「delete」と入力すると、その原子をPDBから削除します。<br>
+      ・出力PDBに水素は含まれません。
+    </div>
+
+    <div id="tableContainer">
+      <p style="color: #64748b; text-align: center; padding: 24px 0;">PDBファイルをアップロードすると、ここに原子名一覧（水素以外）が表示されます。</p>
+    </div>
+
+    <div class="actions">
+      <button id="downloadPdbBtn" class="download-btn" disabled>完成版PDBをダウンロード</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // =========================================================================
+  // GitHubリポジトリ内の画像パス設定
+  // 用意した8つの画像のファイル名・拡張子（.png や .svg など）に合わせて変更してください
+  // =========================================================================
+  const REFERENCE_IMAGES = {
+    DA: "./images/DA.svg",
+    DC: "./images/DC.svg",
+    DG: "./images/DG.svg",
+    DT: "./images/DT.svg",
+    A:  "./images/A.svg",
+    C:  "./images/C.svg",
+    G:  "./images/G.svg",
+    U:  "./images/U.svg"
+  };
+
+  let originalPdbText = "";
+  let originalPdbFileName = "modified.pdb";
+  let parsedAtoms = [];
+  let currentSelectedResidue = "";
+
+  const pdbInput = document.getElementById('pdbInput');
+  const svgInput = document.getElementById('svgInput');
+  const uploadedSvgContainer = document.getElementById('uploadedSvgContainer');
+  const referenceImageContainer = document.getElementById('referenceImageContainer');
+  const tableContainer = document.getElementById('tableContainer');
+  const downloadPdbBtn = document.getElementById('downloadPdbBtn');
+
+  // 1. アップロードされたSVG（または画像）をそのまま表示
+  svgInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    uploadedSvgContainer.innerHTML = `<img src="${url}" alt="Uploaded SVG">`;
+  });
+
+  // 2. 8つの選択肢（DA, DC, DG, DT, A, C, G, U）の切り替え処理
+  function selectResidue(resType) {
+    currentSelectedResidue = resType;
+
+    // 上部ボタンのアクティブ状態を更新
+    document.querySelectorAll('.residue-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-res') === resType);
+    });
+
+    // テーブルヘッダー内のセレクトボックスも同期
+    const headerSelect = document.getElementById('headerResidueSelect');
+    if (headerSelect && headerSelect.value !== resType) {
+      headerSelect.value = resType;
+    }
+
+    // 参照画像の表示更新
+    const imgPath = REFERENCE_IMAGES[resType];
+    if (imgPath) {
+      referenceImageContainer.innerHTML = `
+        <img src="${imgPath}" alt="${resType} reference"
+             onerror="this.outerHTML='<div style=\\'color:#dc2626;text-align:center;font-size:0.9rem;\\'>画像が見つかりません:<br><code>${imgPath}</code><br>同じフォルダまたは指定パスに画像を配置してください。</div>'">
+      `;
+    } else {
+      referenceImageContainer.innerHTML = `<span style="color: #94a3b8; font-size: 0.9rem;">上のボタン（DA〜U）を選択すると参照画像が表示されます</span>`;
+    }
+  }
+
+  document.querySelectorAll('.residue-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectResidue(btn.getAttribute('data-res'));
+    });
+  });
+
+  // 3. PDBファイルの読み込み
+  pdbInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    originalPdbFileName = file.name.replace(/\.[^/.]+$/, "") + "_modified.pdb";
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      originalPdbText = event.target.result;
+      parsePdbAndRenderTable(originalPdbText);
+      downloadPdbBtn.disabled = false;
+    };
+    reader.readAsText(file);
+  });
+
+  // 水素原子（H, D）かどうかの判定
+  function isHydrogenAtom(line) {
+    const atomName = line.substring(12, 16).trim();
+    const elementField = line.length >= 78 ? line.substring(76, 78).trim() : "";
+    const cleanElement = elementField.replace(/[0-9+-]/g, '').toUpperCase();
+
+    if (cleanElement) {
+      return cleanElement === 'H' || cleanElement === 'D';
+    }
+    const cleanAtom = atomName.replace(/^[0-9]+/, '').toUpperCase();
+    return cleanAtom.startsWith('H') || cleanAtom.startsWith('D');
+  }
+
+  // PDBを解析して表を生成
+  function parsePdbAndRenderTable(pdbText) {
+    const lines = pdbText.split(/\r?\n/);
+    parsedAtoms = [];
+
+    lines.forEach((line, idx) => {
+      if (line.startsWith("ATOM  ") || line.startsWith("HETATM")) {
+        if (!isHydrogenAtom(line)) {
+          const serial = line.substring(6, 11).trim();
+          const atomName = line.substring(12, 16).trim();
+          const resName = line.substring(17, 20).trim();
+          const element = line.length >= 78 ? line.substring(76, 78).trim() : "";
+
+          parsedAtoms.push({
+            id: parsedAtoms.length,
+            serial: serial,
+            atomName: atomName,
+            resName: resName,
+            element: element,
+            lineIndex: idx
+          });
+        }
+      }
+    });
+
+    if (parsedAtoms.length === 0) {
+      tableContainer.innerHTML = `<p style="color: #dc2626; text-align: center;">水素以外の原子が見つかりませんでした。</p>`;
+      return;
+    }
+
+    const residueOptions = ["DA", "DC", "DG", "DT", "A", "C", "G", "U"].map(r =>
+      `<option value="${r}" ${currentSelectedResidue === r ? "selected" : ""}>${r} の参照画像を表示</option>`
+    ).join("");
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 70px;">番号</th>
+            <th style="width: 90px;">残基名</th>
+            <th style="width: 30%;">変更前の原子名</th>
+            <th>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                <span>変更後の原子名（または「削除」/「delete」）</span>
+                <select id="headerResidueSelect" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: 600;">
+                  <option value="">-- 参照画像を選択 (DA〜U) --</option>
+                  ${residueOptions}
+                </select>
+              </div>
+            </th>
+            <th style="width: 80px;">状態</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    parsedAtoms.forEach((atom, i) => {
+      html += `
+        <tr id="row-${i}">
+          <td>${atom.serial}</td>
+          <td>${atom.resName}</td>
+          <td style="font-family: monospace; font-weight: 600; font-size: 1rem;">${atom.atomName}</td>
+          <td>
+            <input type="text" data-index="${i}" class="atom-input" placeholder="${atom.atomName} （空欄で維持 / 削除 or delete）">
+          </td>
+          <td id="status-${i}"><span class="badge badge-keep">維持</span></td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    tableContainer.innerHTML = html;
+
+    // 変更後の列の上にあるセレクトボックスと画像表示を連動
+    const headerSelect = document.getElementById('headerResidueSelect');
+    headerSelect.addEventListener('change', (e) => {
+      if (e.target.value) {
+        selectResidue(e.target.value);
+      }
+    });
+
+    // 各行の入力イベント
+    document.querySelectorAll('.atom-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10);
+        updateRowStatus(idx, e.target.value);
+      });
+    });
+  }
+
+  function isDeleteCommand(val) {
+    const trimmed = val.trim().toLowerCase();
+    return trimmed === '削除' || trimmed === 'delete';
+  }
+
+  function updateRowStatus(idx, value) {
+    const row = document.getElementById(`row-${idx}`);
+    const statusCell = document.getElementById(`status-${idx}`);
+    const trimmed = value.trim();
+
+    row.classList.remove('delete-row', 'rename-row');
+
+    if (trimmed === "") {
+      statusCell.innerHTML = `<span class="badge badge-keep">維持</span>`;
+    } else if (isDeleteCommand(trimmed)) {
+      row.classList.add('delete-row');
+      statusCell.innerHTML = `<span class="badge badge-delete">削除</span>`;
+    } else {
+      row.classList.add('rename-row');
+      statusCell.innerHTML = `<span class="badge badge-rename">変更</span>`;
+    }
+  }
+
+  // PDBの原子名フィールド（13〜16列目、4文字幅）の整形
+  function formatPdbAtomName(name, elementField) {
+    const trimmed = name.trim();
+    if (trimmed.length >= 4) {
+      return trimmed.substring(0, 4);
+    }
+    const cleanElem = elementField.replace(/[0-9+-]/g, '').trim();
+    if (cleanElem.length === 2 && trimmed.toUpperCase().startsWith(cleanElem.toUpperCase())) {
+      return trimmed.padEnd(4, ' ');
+    }
+    return (' ' + trimmed).padEnd(4, ' ');
+  }
+
+  // 2段階置換（元の名前 -> X1, X2... -> ユーザー指定名）および水素・削除指定原子の除外
+  function generateModifiedPdb() {
+    const lines = originalPdbText.split(/\r?\n/);
+    const inputs = document.querySelectorAll('.atom-input');
+    const lineActionMap = new Map();
+    const tempToFinalMap = new Map();
+
+    inputs.forEach(input => {
+      const idx = parseInt(input.getAttribute('data-index'), 10);
+      const atom = parsedAtoms[idx];
+      const rawVal = input.value.trim();
+      const deleted = isDeleteCommand(rawVal);
+      const tempName = `X${idx + 1}`;
+      const finalName = (rawVal === "" || deleted) ? atom.atomName : rawVal;
+
+      lineActionMap.set(atom.lineIndex, {
+        tempName: tempName,
+        isDeleted: deleted,
+        serial: atom.serial,
+        element: atom.element
+      });
+
+      if (!deleted) {
+        tempToFinalMap.set(tempName, finalName);
+      }
+    });
+
+    const keptSerials = new Set();
+    const intermediateLines = [];
+
+    // 第1段階：水素と削除指定を除外し、残りの原子名を一時名 X1, X2... に置き換える
+    lines.forEach((line, idx) => {
+      if (line.startsWith("ATOM  ") || line.startsWith("HETATM")) {
+        if (isHydrogenAtom(line)) {
+          return; // 水素は出力しない
+        }
+        const act = lineActionMap.get(idx);
+        if (act) {
+          if (act.isDeleted) {
+            return; // 削除指定された原子は出力しない
+          }
+          keptSerials.add(act.serial);
+          intermediateLines.push({
+            type: 'ATOM',
+            rawLine: line,
+            tempName: act.tempName,
+            element: act.element
+          });
+        }
+      } else if (line.startsWith("CONECT")) {
+        intermediateLines.push({
+          type: 'CONECT',
+          rawLine: line
+        });
+      } else {
+        intermediateLines.push({
+          type: 'OTHER',
+          rawLine: line
+        });
+      }
+    });
+
+    // 第2段階：一時名 X1, X2... をユーザーが指定した名前に変換し、CONECT行も整合性を保つ
+    const outputLines = [];
+
+    intermediateLines.forEach(item => {
+      if (item.type === 'ATOM') {
+        const finalName = tempToFinalMap.get(item.tempName);
+        const formattedAtomField = formatPdbAtomName(finalName, item.element);
+        const newLine = item.rawLine.substring(0, 12) + formattedAtomField + item.rawLine.substring(16);
+        outputLines.push(newLine);
+      } else if (item.type === 'CONECT') {
+        const tokens = item.rawLine.substring(6).trim().split(/\s+/);
+        if (tokens.length > 0) {
+          const baseSerial = tokens[0];
+          if (keptSerials.has(baseSerial)) {
+            const connectedSerials = tokens.slice(1).filter(s => keptSerials.has(s));
+            if (connectedSerials.length > 0) {
+              let conectLine = "CONECT" + baseSerial.padStart(5, ' ');
+              connectedSerials.forEach(s => {
+                conectLine += s.padStart(5, ' ');
+              });
+              outputLines.push(conectLine.padEnd(80, ' '));
+            }
+          }
+        }
+      } else {
+        outputLines.push(item.rawLine);
+      }
+    });
+
+    return outputLines.join("\n");
+  }
+
+  // 完成版PDBのダウンロード処理
+  downloadPdbBtn.addEventListener('click', () => {
+    if (!originalPdbText) return;
+    const modifiedPdb = generateModifiedPdb();
+    const blob = new Blob([modifiedPdb], { type: "chemical/x-pdb;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = originalPdbFileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+</script>
+
+</body>
+</html>
